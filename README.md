@@ -1,5 +1,5 @@
 # upgrade-maquina-de-lavar
-transformando uma máquina de lavar Eletrolux LS12Q usando 3.5" TFT LCD shield em um arduino mega 2560
+transformando uma máquina de lavar Eletrolux LS12 usando 3.5" TFT LCD shield em um arduino mega 2560
 
 Coisas úteis para lembrar:
 

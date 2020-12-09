@@ -1,6 +1,7 @@
 #include <MCUFRIEND_kbv.h>
 #include <Adafruit_GFX.h> //Biblioteca grafica
 #include <TouchScreen.h>  //Biblioteca Touch
+#include <TimerThree.h> //Biblioteca para gerenciar o timer 3 do arduino mega
 
 #define YP A3 // Y+ is on Analog1
 #define XM A2 // X- is on Analog2
@@ -40,7 +41,9 @@ int ciclo = 0;
 int agua = 0;
 bool enxague = false;
 bool passa = false;
+bool secagem = false;
 int fase = 1;//variavel que controla em qual ciclo a lavagem está
+int fase2 = 0; //variavel que controla em qual ciclo a lavagem pode ser que esteja na próxima
 //tabela referente aos ciclos da maquina de lavar:
 /*
 primeiro dígito: função
@@ -92,6 +95,8 @@ int tabela[21][19]{//21-> como começa do 0, para facilitar é usado 21 para 20 
 void setup()
 {
   Serial.begin(9600);
+  Timer3.initialize(1000000);//inicializa o Timer3 com periodo de 1segundo
+  Timer3.attachInterrupt(timerRoutine);//timerRoutine() agora é uma função que faz uma interrupção no código a cada 1 segundo
  
   tft.reset();
   tft.begin(tft.readID());
@@ -103,6 +108,9 @@ void setup()
 void loop()
 {
 menu();
+  if (pagina == 6){
+   lavagem();
+  }
 }
 
 void menu(){
@@ -169,11 +177,18 @@ void menu(){
        modo(pagina);
      }
      if((ciclo == 6) || (ciclo == 13)){//nos ciclos tenis(6) e roupa preta(9) duplo enxague está sempre ativo
-      enxague =true;
+      enxague = true;
+     }
+     if (ciclo == 6){//no ciclo tênis(6), o nível de água é sempre baixo
+      (agua = 1);
      }
      if((p.x >= 267) && (p.x <= 303) && (p.y >= 310) && (p.y <= 470)&&(ciclo != 0)){ //tecla opções
-       pagina = 5;
        con();
+       delay(1000);
+       pagina = 5;
+       return;//este return é para sair desta função quando for apertado o botão "opções".
+       //Isso é necessário pois como o botão está no mesmo lugar do outro botão para continuar, quando é apertado o primeiro,o segundo também pode ser ativado,
+       //devio ao fato de estar logo embaixo no código e só foi feita uma vez a verificação de posição do touch
      }
     }
     if(pagina == 5){
@@ -185,7 +200,8 @@ void menu(){
       passa = false;
       modo(pagina);
      }
-     if((p.x>=100) && (p.x <= 127) && (p.y <= 256)){
+     if(ciclo != 6){//no ciclo têncis(6), o nível baixo de água é sempre ativo
+     if((p.x>=100) && (p.x <= 127) && (p.y <= 256) && (ciclo !=8)){//ciclo cobertor/manta(8) não possui seleção automática de água
        agua = 5;
        Serial.println(agua);
        con();
@@ -210,6 +226,7 @@ void menu(){
        Serial.println(agua);
        con();
      }
+     }
      if((p.y>=332) && (p.y <= 470) && (p.x >= 70) && (p.x <= 124)){ //tecla de duplo enxague
        if((ciclo != 6) && (ciclo != 13)){//nos ciclos tenis(6) e roupa preta(9) duplo enxague está sempre ativo
        enxague = (!enxague);
@@ -223,7 +240,6 @@ void menu(){
        con();
      }
      if((p.y>=238) && (p.y <= 470) && (p.x >= 267) && (p.x <= 303) && (agua != 0)){//tecla continuar
-      pagina = 6;
       Serial.println("");
       Serial.print("ciclo: ");
       Serial.println(ciclo);
@@ -234,12 +250,12 @@ void menu(){
       Serial.print("passa fácil: ");
       Serial.println(passa);
       Serial.println("===============================");
+      tft.fillScreen(BLACK);
       linhaTempo(0);
+      pagina = 6;
       }
     }
-    if (pagina == 6){
-      lavagem();
-    }
+    
   }
 }
 
@@ -448,10 +464,11 @@ void con(){
     tft.setTextSize(3);
     tft.print("nivel de agua");
 
-    tft.drawRoundRect(40, 100, ((6*10*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+    tft.drawRoundRect(40, 100, ((6*10*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE); 
     tft.setCursor((40 + (2*3)), (100 + (1*3)));
     tft.setTextColor(WHITE);
     if (agua == 5){ tft.setTextColor(YELLOW);}//torna amarelo se for clicado
+    if (ciclo == 8){ tft.setTextColor(0xB596);}//ciclo ccobertor/manta(8) não possui seleção automática de água
     tft.setTextSize(3);
     tft.print("automatico");
 
@@ -517,9 +534,6 @@ void con(){
 }
 
 void linhaTempo(int fase){
-   
-   tft.fillScreen(BLACK);
-   
    tft.setCursor((10 + (2*4)), (10 + (1*4)));
    tft.setTextColor(WHITE);
    tft.setTextSize(4);
@@ -607,50 +621,50 @@ void linhaTempo(int fase){
     break;
     }
     
-    tft.drawRoundRect(10, 60, ((6*20*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
-    tft.setCursor((10 + (2*3)), (60 + (1*3)));
+    tft.drawRoundRect(50, 60, ((6*20*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+    tft.setCursor((50 + (2*3)), (60 + (1*3)));
     tft.setTextColor(WHITE);
     if (fase == 1){ tft.setTextColor(YELLOW);}//torna amarelo quando a máquina entrar nesta fase
     tft.setTextSize(3);
     tft.print("molho longo+agitacao");
 
-    tft.drawRoundRect(10, 90, ((6*14*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
-    tft.setCursor((10 + (2*3)), (90 + (1*3)));
+    tft.drawRoundRect(50, 90, ((6*14*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+    tft.setCursor((50 + (2*3)), (90 + (1*3)));
     tft.setTextColor(WHITE);
     if (fase == 2){ tft.setTextColor(YELLOW);}//torna amarelo quando a máquina entrar nesta fase
     tft.setTextSize(3);
     tft.print("molho+agitacao");
 
-    tft.drawRoundRect(10, 120, ((6*20*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
-    tft.setCursor((10 + (2*3)), (120 + (1*3)));
+    tft.drawRoundRect(50, 120, ((6*20*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+    tft.setCursor((50 + (2*3)), (120 + (1*3)));
     tft.setTextColor(WHITE);
     if (fase == 3){ tft.setTextColor(YELLOW);}//torna amarelo quando a máquina entrar nesta fase
     tft.setTextSize(3);
     tft.print("molho curto+agitacao");
 
-    tft.drawRoundRect(10, 150, ((6*8*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
-    tft.setCursor((10 + (2*3)), (150 + (1*3)));
+    tft.drawRoundRect(50, 150, ((6*8*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+    tft.setCursor((50 + (2*3)), (150 + (1*3)));
     tft.setTextColor(WHITE);
     if (fase == 4){ tft.setTextColor(YELLOW);}//torna amarelo quando a máquina entrar nesta fase
     tft.setTextSize(3);
     tft.print("agitacao");
 
-    tft.drawRoundRect(10, 180, ((6*7*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
-    tft.setCursor((10 + (2*3)), (180 + (1*3)));
+    tft.drawRoundRect(50, 180, ((6*7*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+    tft.setCursor((50 + (2*3)), (180 + (1*3)));
     tft.setTextColor(WHITE);
     if (fase == 5){ tft.setTextColor(YELLOW);}//torna amarelo quando a máquina entrar nesta fase
     tft.setTextSize(3);
     tft.print("enxague");
 
-    tft.drawRoundRect(10, 210, ((6*13*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
-    tft.setCursor((10 + (2*3)), (210 + (1*3)));
+    tft.drawRoundRect(50, 210, ((6*13*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+    tft.setCursor((50 + (2*3)), (210 + (1*3)));
     tft.setTextColor(WHITE);
     if (fase == 6){ tft.setTextColor(YELLOW);}//torna amarelo quando a máquina entrar nesta fase
     tft.setTextSize(3);
     tft.print("centrifugacao");
 
-    tft.drawRoundRect(10, 240, ((6*3*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
-    tft.setCursor((10 + (2*3)), (240 + (1*3)));
+    tft.drawRoundRect(50, 240, ((6*3*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+    tft.setCursor((50 + (2*3)), (240 + (1*3)));
     tft.setTextColor(WHITE);
     if (fase == 7){ tft.setTextColor(YELLOW);}//torna amarelo quando a máquina entrar nesta fase
     tft.setTextSize(3);
@@ -715,40 +729,72 @@ void centrifugacao(int tempo){
 void lavagem(){
   EC(); //<-todos os programas precisam no inico
   //molho longo+agitação
+  if (fase2 != 0){
+    tft.fillRect(10, 60, 30, 240, BLACK);
+    fase = fase2;
+    fase2 = 0;
+    }
+    
   if(fase == 1){//esta verificação ocorre para ser possível avançar e pular partes da lavagem
+    Serial.println("molho longo+agitação");
     linhaTempo(fase);
+    fase ++;    
     agitacao(tabela[ciclo][0]%100);
     molho(tabela[ciclo][1]%100);
     agitacao(tabela[ciclo][2]%100);
     molho(tabela[ciclo][3]%100);
-    fase ++;
   }
+  if (fase2 != 0){
+    tft.fillRect(10, 60, 30, 240, BLACK);
+    fase = fase2;
+    fase2 = 0;
+    }
   if(fase == 2){ //molho+agitação
+    Serial.println("molho+agitação");
     linhaTempo(fase);
+    fase ++;
     agitacao(tabela[ciclo][4]%100);
     molho(tabela[ciclo][5]%100);
     agitacao(tabela[ciclo][6]%100);
     molho(tabela[ciclo][7]%100);
-    fase ++;
   }
+  if (fase2 != 0){
+    tft.fillRect(10, 60, 30, 240, BLACK);
+    fase = fase2;
+    fase2 = 0;
+    }
   if(fase == 3){ //molho curto+agitação
+    Serial.println("molho curto+agitação");
     linhaTempo(fase);
+    fase ++;
     agitacao(tabela[ciclo][8]%100);
     molho(tabela[ciclo][9]%100);
     agitacao(tabela[ciclo][10]%100);
     molho(tabela[ciclo][11]%100);
-    fase ++;
   }
+  if (fase2 != 0){
+    tft.fillRect(10, 60, 30, 240, BLACK);
+    fase = fase2;
+    fase2 = 0;
+    }
   if(fase == 4){ //agitação
+    Serial.println("agitação");
     linhaTempo(fase);
+    fase ++;
     agitacao(tabela[ciclo][12]%100);
     molho(tabela[ciclo][13]%100);
     agitacao(tabela[ciclo][14]%100);
     molho(tabela[ciclo][15]%100);
-    fase ++;
   }
+  if (fase2 != 0){
+    tft.fillRect(10, 60, 30, 240, BLACK);
+    fase = fase2;
+    fase2 = 0;
+    }
   if(fase == 5){ //Enxague
+    Serial.println("Enxague");
     linhaTempo(fase);
+    fase ++;
     //esta parte é igual para todos os ciclos:
     A();
     B();
@@ -770,16 +816,125 @@ void lavagem(){
       F_();
       agitacao(2);
     }
-    fase ++;
   }
-  
+  if (fase2 != 0){
+    tft.fillRect(10, 60, 30, 240, BLACK);
+    fase = fase2;
+    fase2 = 0;
+    }
+  if(fase == 6){//Centrifugação
+    Serial.println("Centrifugação");
+    linhaTempo(fase);
+    fase ++;
+    A();
+    B();
+    if(ciclo != 10){//para generalizar,´é necessário introduzir esta exeção pois todos os ciclos passam por K();, menos o "rápido 25min", que que pula esta parte
+      K(); 
+    }
+    if (passa == false && secagem == false){
+    if((tabela[ciclo][16]/100) == 5){//isso significa que é para fazer a função G();
+      G();
+    }
+    if((tabela[ciclo][16]/100) == 4){//isso significa que é para fazer a função J();
+      J();
+    }
+    if((tabela[ciclo][16]/100) == 3){//isso significa que é para fazer a função agitacao(int tempo);
+      agitacao(tabela[ciclo][16]%100);//executa a função agitacao com o valor dos dois ultimos digitos do valor numero 16 da tabela
+    }
+    }
+    //esta parte do programa é referente aos modos passa fácil e turbo secagem e a função executada com o item numero 18 da lista:
+    if((passa == true) && (secagem == false)){
+      centrifugacao(tabela[ciclo][17]%100);
+    }
+    if((passa == false) && (secagem == true)){
+      if(ciclo == 20){//ciclo seda/lâ executa a função L() em vez de centrifugação
+        L();
+      }
+      else{
+        centrifugacao(tabela[ciclo][18]%100);
+      } 
+    }
+    
+    if(ciclo == 10){//para generalizar,´é necessário introduzir esta exeção pois todos os ciclos passam por H();, menos o "rápido 25min", que passa por HR();
+      HR(); 
+    }
+    else{
+      H();
+    }
+    E();
+  }
+  if (fase2 != 0){
+    tft.fillRect(10, 60, 30, 240, BLACK);
+    fase = fase2;
+    fase2 = 0;
+    }
+  if(fase == 7){//fim
+    Serial.println("fim");
+    linhaTempo(fase);
+  }
+  if (fase2 != 0){
+    tft.fillRect(10, 60, 30, 240, BLACK);
+    fase = fase2;
+    fase2 = 0;
+    }
 }
 
+void timerRoutine(){
+  Serial.println(millis());
+  Serial.println(fase);
+  Serial.println(fase2);
+  if (pagina == 6){//se está na página que mostra a linha do tempo(última página)
+    //------------------------------------------
+    TSPoint p = ts.getPoint();
+    pinMode(XM, OUTPUT);
+    digitalWrite(XM, LOW);
+    pinMode(YP, OUTPUT);
+    digitalWrite(YP, HIGH);
+    pinMode(YM, OUTPUT);
+    digitalWrite(YM, LOW);
+    pinMode(XP, OUTPUT);
+    digitalWrite(XP, HIGH);
+    //------------------------------------------
+    if (p.z > MINPRESSURE && p.z < MAXPRESSURE){//se o monitor for tocado
+      p.x = (map(p.x, TS_MINX, TS_MAXX, tft.height(), 0)); //mapeia X para estar de acordo com as coordenadas da tela
+      p.y = (map(p.y, TS_MINY, TS_MAXY, tft.width(), 0));  //mapeia Y para estar de acordo com as coordenadas da tela
 
-
-
-
-
-
-
- 
+      if((p.x >= 60) && (p.x<= 88)){//se foi tocado em "molho longo+agitação"    
+        tft.fillRect(10, 60, 30, 240, BLACK);
+        tft.fillCircle(10 + 14, (60 + 14), 13, WHITE);
+        fase2 = 1;//faz ir para a fase 1, para que seja executado o "molho longo+agitação"
+      }
+      if((p.x >= 90) && (p.x<= 118)){//se foi tocado em "molho+agitação"
+        tft.fillRect(10, 60, 30, 240, BLACK);
+        tft.fillCircle(10 + 14, (90 + 14), 13, WHITE);
+        fase2 = 2;//faz ir para a fase 2, para que seja executado o "molho+agitação"
+      }
+      if((p.x >= 120) && (p.x<= 148)){//se foi tocado em "molho curto+agitação"
+        tft.fillRect(10, 60, 30, 240, BLACK);
+        tft.fillCircle(10 + 14, (120 + 14), 13, WHITE);
+        fase2 = 3;//faz ir para a fase 3, para que seja executado o "molho curto+agitação"
+      }
+      if((p.x >= 150) && (p.x<= 178)){//se foi tocado em "agitação"
+        tft.fillRect(10, 60, 30, 240, BLACK);
+        tft.fillCircle(10 + 14, (150 + 14), 13, WHITE);
+        fase2 = 4;//faz ir para a fase 4, para que seja executado o "agitação"
+      }
+      if((p.x >= 180) && (p.x<= 208)){//se foi tocado em "enxague"
+        tft.fillRect(10, 60, 30, 240, BLACK);
+        tft.fillCircle(10 + 14, (180 + 14), 13, WHITE);
+        fase2 = 5;//faz ir para a fase 5, para que seja executado o "enxague"
+      }
+      if((p.x >= 210) && (p.x<= 238)){//se foi tocado em "centrifugação"
+        tft.fillRect(10, 60, 30, 240, BLACK);
+        tft.fillCircle(10 + 14, (210 + 14), 13, WHITE);
+        fase2 = 6;//faz ir para a fase 6, para que seja executado o "centrifugação"
+      }
+      if((p.x >= 240) && (p.x<= 298)){//se foi tocado em "centrifugação"
+        tft.fillRect(10, 60, 30, 240, BLACK);
+        tft.fillCircle(10 + 14, (240 + 14), 13, WHITE);
+        fase2 = 7;//faz ir para a fase 6, para que seja executado o "centrifugação"
+      }
+    }
+  }
+  Serial.println(millis());
+}

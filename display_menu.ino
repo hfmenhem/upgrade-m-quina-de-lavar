@@ -36,6 +36,11 @@ MCUFRIEND_kbv tft;
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
+#define info 53  //pino que transmitirá a informação para a máquina de lavar
+#define enableR 51  //pino que será o enable do register
+#define enableF 49  //pino que será o enable da saída do register
+#define Tsecagem 47  //pino que está ligado no botão de turbo secagem
+
 int pagina = 1;
 int ciclo = 0;
 int agua = 0;
@@ -93,9 +98,9 @@ int tabela[21][19]{//21-> como começa do 0, para facilitar é usado 21 para 20 
 };
 
 void setup()
-{
+{  
   Serial.begin(9600);
-  Timer3.initialize(1000000);//inicializa o Timer3 com periodo de 1segundo
+  Timer3.initialize(1000000);//inicializa o Timer3 com periodo de 1 segundo
   Timer3.attachInterrupt(timerRoutine);//timerRoutine() agora é uma função que faz uma interrupção no código a cada 1 segundo
  
   tft.reset();
@@ -103,13 +108,23 @@ void setup()
   tft.fillScreen(BLACK);
   tft.setRotation(1); 
 
+  pinMode(info, OUTPUT);//pino que transmitirá a informação para a máquina de lavar
+  pinMode(enableR, OUTPUT);//pino que será o enable do register
+  pinMode(enableF, OUTPUT);//pino que será o enable da saída do register
+
+  digitalWrite(info, LOW);
+  digitalWrite(enableR, LOW);
+  digitalWrite(enableF, LOW);
+  
   modo(1);
 }
 void loop()
 {
-menu();
   if (pagina == 6){
    lavagem();
+  }
+  else{
+    menu();
   }
 }
 
@@ -240,6 +255,8 @@ void menu(){
        con();
      }
      if((p.y>=238) && (p.y <= 470) && (p.x >= 267) && (p.x <= 303) && (agua != 0)){//tecla continuar
+      secagem = digitalRead(Tsecagem);//atribui o valor do pino que está conectado no botão da turbo secagem para a variável secage
+      
       Serial.println("");
       Serial.print("ciclo: ");
       Serial.println(ciclo);
@@ -249,6 +266,8 @@ void menu(){
       Serial.println(enxague);
       Serial.print("passa fácil: ");
       Serial.println(passa);
+      Serial.print("turbo secagem: ");
+      Serial.println(secagem);
       Serial.println("===============================");
       tft.fillScreen(BLACK);
       linhaTempo(0);
@@ -553,7 +572,7 @@ void linhaTempo(int fase){
     break;
     case 4:
     tft.print("toalha");
-    tft.drawRoundRect(10, 10, ((6*69*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
+    tft.drawRoundRect(10, 10, ((6*6*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
     break;
     case 5:
     tft.print("roupa de cama");
@@ -871,6 +890,17 @@ void lavagem(){
   if(fase == 7){//fim
     Serial.println("fim");
     linhaTempo(fase);
+    //reseta todas as variáveis globais para voltar para o estado inicial de escolher o ciclo, para poder faer outra lavagem
+    pagina = 1;
+    ciclo = 0;
+    agua = 0;
+    enxague = false;
+    passa = false;
+    secagem = false;
+    fase = 1;
+    fase2 = 0;  
+    modo(1);//para começar tudo de novo.
+    return;
   }
   if (fase2 != 0){
     tft.fillRect(10, 60, 30, 240, BLACK);
@@ -937,4 +967,32 @@ void timerRoutine(){
     }
   }
   Serial.println(millis());
+}
+
+void maquinaLavar(bool eletrobomba, bool freio, bool motor, bool VPrincipal, bool VAmaciante){ //função que controla a máguina de lavar
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+  digitalWrite(enableF, LOW);//desliga o pino dde enable que fica depois do register
+  
+  digitalWrite(info, VAmaciante);//escreve no pino a informação que está na variável
+  digitalWrite(enableR, HIGH);//liga o pino enable do register
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+
+  digitalWrite(info, VPrincipal);//escreve no pino a informação que está na variável
+  digitalWrite(enableR, HIGH);//liga o pino enable do register
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+
+  digitalWrite(info, motor);//escreve no pino a informação que está na variável
+  digitalWrite(enableR, HIGH);//liga o pino enable do register
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+
+  digitalWrite(info, freio);//escreve no pino a informação que está na variável
+  digitalWrite(enableR, HIGH);//liga o pino enable do register
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+
+  digitalWrite(info, eletrobomba);//escreve no pino a informação que está na variável
+  digitalWrite(enableR, HIGH);//liga o pino enable do register
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+
+  digitalWrite(enableF, HIGH);//liga o pino dde enable que fica depois do register
+  digitalWrite(enableF, LOW);//desliga o pino dde enable que fica depois do register
 }

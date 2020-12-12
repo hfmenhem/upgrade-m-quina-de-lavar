@@ -724,9 +724,9 @@ bool tabela[3][75]{//1º motor horário, 2ºmotor anti-horário, 3º válvula
 {true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false},
 {false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false},
 {true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false},
-}
-for(int i=0, i<=75, i++,){
-  maquinaLavar(false, false, tabela[1][i], tabela[2][i], tabela[3][i], false;//executa o que está escrito na tabela
+};
+for(int i=0; i<=75; i++){
+  maquinaLavar(false, false, tabela[1][i], tabela[2][i], tabela[3][i], false);//executa o que está escrito na tabela
 }
   }
 void D(){
@@ -779,7 +779,7 @@ void FR(){
   maquinaLavar(false, false, false, false, false, false);//desliga a valvula de amaciante
   }
 void G(){
-  for(int i = 1, i <= 4, i++){repita 4 vezes
+  for(int i = 1; i <= 4; i++){//repita 4 vezes
     maquinaLavar(false, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação
     delay(50000);//delay de 50 segundos
     maquinaLavar(false, true, false, false, false, false);//desliga o motor
@@ -801,7 +801,7 @@ void I(){
   delay(70000);//delay de 70 segundos
   }
 void J(){
-  for(int i = 1, i <= 5, i++){repita 5 vezes
+  for(int i = 1; i <= 5; i++){//repita 5 vezes
     maquinaLavar(false, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação
     delay(50000);//delay de 50 segundos
     maquinaLavar(false, true, false, false, false, false);//desliga o motor
@@ -813,7 +813,7 @@ void K(){
   C();
   }
 void L(){
-  for(int i = 1, i <= 6, i++){repita 6 vezes
+  for(int i = 1; i <= 6; i++){//repita 6 vezes
     maquinaLavar(false, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação
     delay(50000);//delay de 50 segundos
     maquinaLavar(false, true, false, false, false, false);//desliga o motor
@@ -822,7 +822,7 @@ void L(){
 }
 //maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool VPrincipal, bool VAmaciante)
 void agitacao(float tempo){//tempo em minutos
-  for(i = 1, i<=tempo, i++){//como cada loop dura 1 minuto, a quanidade de vezes que será feito o loop será o tempo em minutos da função
+  for(int i = 1; i<=tempo; i++){//como cada loop dura 1 minuto, a quanidade de vezes que será feito o loop será o tempo em minutos da função
   
   int To = millis();//Tempo inicial
   
@@ -830,43 +830,43 @@ void agitacao(float tempo){//tempo em minutos
    //toda vez que liga/deliga o motor, o freio e a bomba estarão ligadas:
   if((ciclo >= 1) && (ciclo <= 10) && (ciclo != 6)){//se é um ciclo normal ou especial que não é o tênis
     maquinaLavar(true, true, false, true, false, false);//liga motor anti-horário
-    delay(400)//delay de 0,4 segundo
+    delay(400);//delay de 0,4 segundo
     maquinaLavar(true, true, false, false, false, false);//desliga motor
-    delay(600)//delay de 0,6 segundo
+    delay(600);//delay de 0,6 segundo
     maquinaLavar(true, true, false, false, true, false);//liga motor horário
-    delay(460)//delay de 0,46 segundo
+    delay(460);//delay de 0,46 segundo
     maquinaLavar(true, true, false, false, false, false);//desliga motor
-    delay(600)//delay de 0,6 segundo
+    delay(600);//delay de 0,6 segundo
   }
   if((ciclo >= 11) && (ciclo <= 15)){//se é um ciclo delicado
     maquinaLavar(true, true, false, true, false, false);//liga motor anti-horário
-    delay(200)//delay de 0,2 segundo
+    delay(200);//delay de 0,2 segundo
     maquinaLavar(true, true, false, false, false, false);//desliga motor
-    delay(700)//delay de 0,7 segundo
+    delay(700);//delay de 0,7 segundo
     maquinaLavar(true, true, false, false, true, false);//liga motor horário
-    delay(260)//delay de 0,26 segundo
+    delay(260);//delay de 0,26 segundo
     maquinaLavar(true, true, false, false, false, false);//desliga motor
-    delay(700)//delay de 0,7 segundo
+    delay(700);//delay de 0,7 segundo
   }
   if((ciclo >= 16) && (ciclo <= 20)){//se é um ciclo turbo
     maquinaLavar(true, true, false, true, false, false);//liga motor anti-horário
-    delay(460)//delay de 0,46 segundo
+    delay(460);//delay de 0,46 segundo
     maquinaLavar(true, true, false, false, false, false);//desliga motor
-    delay(100)//delay de 0,1 segundo
+    delay(100);//delay de 0,1 segundo
     maquinaLavar(true, true, false, false, true, false);//liga motor horário
-    delay(560)//delay de 0,56 segundo
+    delay(560);//delay de 0,56 segundo
     maquinaLavar(true, true, false, false, false, false);//desliga motor
-    delay(100)//delay de 0,1 segundo
+    delay(100);//delay de 0,1 segundo
   }
   if(ciclo = 6){//se é o ciclo de tênis
     maquinaLavar(true, true, false, true, false, false);//liga motor anti-horário
-    delay(300)//delay de 0,2 segundo
+    delay(300);//delay de 0,2 segundo
     maquinaLavar(true, true, false, false, false, false);//desliga motor
-    delay(860)//delay de 0,7 segundo
+    delay(860);//delay de 0,7 segundo
     maquinaLavar(true, true, false, false, true, false);//liga motor horário
-    delay(300)//delay de 0,3 segundo
+    delay(300);//delay de 0,3 segundo
     maquinaLavar(true, true, false, false, false, false);//desliga motor
-    delay(860)//delay de 0,86 segundo
+    delay(860);//delay de 0,86 segundo
   }
   }
   
@@ -876,43 +876,43 @@ void agitacao(float tempo){//tempo em minutos
    //toda vez que liga/deliga o motor, o freio estará ligaado e a bomba estará desligada:
   if((ciclo >= 1) && (ciclo <= 10) && (ciclo != 6)){//se é um ciclo normal ou especial que não é o tênis
     maquinaLavar(false, true, false, true, false, false);//liga motor anti-horário
-    delay(400)//delay de 0,4 segundo
+    delay(400);//delay de 0,4 segundo
     maquinaLavar(false, true, false, false, false, false);//desliga motor
-    delay(600)//delay de 0,6 segundo
+    delay(600);//delay de 0,6 segundo
     maquinaLavar(false, true, false, false, true, false);//liga motor horário
-    delay(460)//delay de 0,46 segundo
+    delay(460);//delay de 0,46 segundo
     maquinaLavar(false, true, false, false, false, false);//desliga motor
-    delay(600)//delay de 0,6 segundo
+    delay(600);//delay de 0,6 segundo
   }
   if((ciclo >= 11) && (ciclo <= 15)){//se é um ciclo delicado
     maquinaLavar(false, true, false, true, false, false);//liga motor anti-horário
-    delay(200)//delay de 0,2 segundo
+    delay(200);//delay de 0,2 segundo
     maquinaLavar(false, true, false, false, false, false);//desliga motor
-    delay(700)//delay de 0,7 segundo
+    delay(700);//delay de 0,7 segundo
     maquinaLavar(false, true, false, false, true, false);//liga motor horário
-    delay(260)//delay de 0,26 segundo
+    delay(260);//delay de 0,26 segundo
     maquinaLavar(false, true, false, false, false, false);//desliga motor
-    delay(700)//delay de 0,7 segundo
+    delay(700);//delay de 0,7 segundo
   }
   if((ciclo >= 16) && (ciclo <= 20)){//se é um ciclo turbo
     maquinaLavar(false, true, false, true, false, false);//liga motor anti-horário
-    delay(460)//delay de 0,46 segundo
+    delay(460);//delay de 0,46 segundo
     maquinaLavar(false, true, false, false, false, false);//desliga motor
-    delay(100)//delay de 0,1 segundo
+    delay(100);//delay de 0,1 segundo
     maquinaLavar(false, true, false, false, true, false);//liga motor horário
-    delay(560)//delay de 0,56 segundo
+    delay(560);//delay de 0,56 segundo
     maquinaLavar(false, true, false, false, false, false);//desliga motor
-    delay(100)//delay de 0,1 segundo
+    delay(100);//delay de 0,1 segundo
   }
   if(ciclo = 6){//se é o ciclo de tênis
     maquinaLavar(false, true, false, true, false, false);//liga motor anti-horário
-    delay(300)//delay de 0,2 segundo
+    delay(300);//delay de 0,2 segundo
     maquinaLavar(false, true, false, false, false, false);//desliga motor
-    delay(860)//delay de 0,7 segundo
+    delay(860);//delay de 0,7 segundo
     maquinaLavar(false, true, false, false, true, false);//liga motor horário
-    delay(300)//delay de 0,3 segundo
+    delay(300);//delay de 0,3 segundo
     maquinaLavar(false, true, false, false, false, false);//desliga motor
-    delay(860)//delay de 0,86 segundo
+    delay(860);//delay de 0,86 segundo
   }
   }
   }

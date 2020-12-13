@@ -40,6 +40,7 @@ MCUFRIEND_kbv tft;
 #define enableR 51  //pino que será o enable do register
 #define enableF 49  //pino que será o enable da saída do register
 #define Tsecagem 47  //pino que está ligado no botão de turbo secagem
+#define pres A15 //pino que será a entrada de informação do pressostato
 
 int pagina = 1;
 int ciclo = 0;
@@ -110,6 +111,7 @@ void setup()
   pinMode(info, OUTPUT);//pino que transmitirá a informação para a máquina de lavar
   pinMode(enableR, OUTPUT);//pino que será o enable do register
   pinMode(enableF, OUTPUT);//pino que será o enable da saída do register
+  pinMode(A15, INPUT);//pino que será a entrada de informação do pressostato
 
   digitalWrite(info, LOW);
   digitalWrite(enableR, LOW);
@@ -726,7 +728,7 @@ bool tabela[3][75]{//1º motor horário, 2ºmotor anti-horário, 3º válvula
 {true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false},
 };
 for(int i=0; i<=75; i++){
-  maquinaLavar(false, false, tabela[1][i], tabela[2][i], tabela[3][i], false);//executa o que está escrito na tabela
+  maquinaLavar(false, false, (tabela[1][i]), (tabela[2][i]), (tabela[3][i]), false);//executa o que está escrito na tabela
 }
   }
 void D(){
@@ -1184,5 +1186,10 @@ void maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool V
   digitalWrite(enableF, LOW);//desliga o pino dde enable que fica depois do register
 }
 int pressostato(){
-  //aqui será o código que retornará o valor da coluna d'água
+  int coluna = 0;//variável que guarda o valor da coluna d'água em milímetros
+  coluna = analogRead(pres);
+  Serial.println("");
+  Serial.print("coluna d'agua (mm): ");
+  Serial.print(map(coluna, 1, 5, 0, 400));
+  return map(coluna, 1, 5, 0, 400);//retorna o valor do mapeamento da variável coluna, que está na escala de 1 a 5, para um valor de 0 a 400
 }

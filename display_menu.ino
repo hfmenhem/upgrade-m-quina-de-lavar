@@ -36,6 +36,12 @@ MCUFRIEND_kbv tft;
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
+#define info 53  //pino que transmitirá a informação para a máquina de lavar
+#define enableR 51  //pino que será o enable do register
+#define enableF 49  //pino que será o enable da saída do register
+#define Tsecagem 47  //pino que está ligado no botão de turbo secagem
+#define pres A15 //pino que será a entrada de informação do pressostato
+
 int pagina = 1;
 int ciclo = 0;
 int agua = 0;
@@ -75,14 +81,14 @@ int tabela[21][19]{//21-> como começa do 0, para facilitar é usado 21 para 20 
 {102,200,102,205,102,204,102,204,102,204,102,203,101,200,101,200,310,306,318},
 {102,200,102,205,104,205,101,205,104,205,101,205,103,200,103,200,312,308,320},
 {102,200,102,205,104,205,101,205,104,205,101,205,103,200,103,200,312,308,320},
-{103,211,103,204,103,205,104,216,104,209,104.5,206,103,200,101,200,312,306,318},
+{103,211,103,204,103,205,104,216,104,209,105,206,103,200,101,200,312,306,318},
 {104,210,103,210,103,210,103,210,103,210,103,210,103,200,104,200,310,306,318},
 {102,200,102,205,104,210,102,210,101,200,101,210,103,200,102,200,310,306,318},
 {102,200,102,220,104,210,104,210,102,200,102,210,103,200,103,200,310,306,318},
-{100.5,200,100.5,200,100.5,200,100.5,200.5,100.5,200,100.5,200,101,200,101,200,307,306,314.5},
-{102,200,102,210,102.5,210,102.5,210,102.5,210,102.5,210,104,200,104,200,312,306,320},
-{105,206,104,212,103,212,101.5,210,102,206,102,218,104,218,106,212,312,308,320},
-{102,200,102,210,102.5,210,102.5,210,102.5,210,102.5,210,104,200,104,200,312,308,320},
+{101,200,101,200,101,200,101,201,101,200,101,200,101,200,101,200,307,306,315},
+{102,200,102,210,103,210,103,210,103,210,103,210,104,200,104,200,312,306,320},
+{105,206,104,212,103,212,102,210,102,206,102,218,104,218,106,212,312,308,320},
+{102,200,102,210,103,210,103,210,103,210,103,210,104,200,104,200,312,308,320},
 {104,210,103,210,103,210,103,210,103,210,103,210,104,200,104,200,312,308,320},
 {102,200,102,205,102,200,102,205,107,210,107,210,104,200,104,200,312,308,320},
 {102,200,102,205,102,200,102,210,101,210,101,210,102,200,102,200,400,306,318},
@@ -91,11 +97,10 @@ int tabela[21][19]{//21-> como começa do 0, para facilitar é usado 21 para 20 
 {102,200,102,205,102,200,102,205,106,208,104,206,102,200,102,200,308,304,316},
 {102,200,102,205,102,200,102,205,105,210,102,210,102,200,101,200,500,304,600},
 };
-
 void setup()
-{
+{  
   Serial.begin(9600);
-  Timer3.initialize(1000000);//inicializa o Timer3 com periodo de 1segundo
+  Timer3.initialize(100000);//inicializa o Timer3 com periodo de 0,1 segundo (100.000 milisssegundos)
   Timer3.attachInterrupt(timerRoutine);//timerRoutine() agora é uma função que faz uma interrupção no código a cada 1 segundo
  
   tft.reset();
@@ -103,13 +108,24 @@ void setup()
   tft.fillScreen(BLACK);
   tft.setRotation(1); 
 
+  pinMode(info, OUTPUT);//pino que transmitirá a informação para a máquina de lavar
+  pinMode(enableR, OUTPUT);//pino que será o enable do register
+  pinMode(enableF, OUTPUT);//pino que será o enable da saída do register
+  pinMode(A15, INPUT);//pino que será a entrada de informação do pressostato
+
+  digitalWrite(info, LOW);
+  digitalWrite(enableR, LOW);
+  digitalWrite(enableF, LOW);
+  
   modo(1);
 }
 void loop()
 {
-menu();
   if (pagina == 6){
    lavagem();
+  }
+  else{
+    menu();
   }
 }
 
@@ -141,7 +157,8 @@ void menu(){
          pagina = 4;
        }
        ciclo = 0;
-       modo(pagina);
+       tft.fillScreen(BLACK);//apaga o que está na tela
+       modo(pagina);//escreve na tela a página anterior
      }
      if((p.x >= 260) && (p.x <= 310) && (p.y >= 60)&& (p.y <= 100)){//seta avançar
        pagina ++;
@@ -149,7 +166,8 @@ void menu(){
          pagina = 1;
        }
        ciclo = 0;
-       modo(pagina);
+       tft.fillScreen(BLACK);//apaga o que está na tela
+       modo(pagina);//escreve na tela a página anterior
      }
      if((p.x>=60) && (p.x <= 87)){
        ciclo = (1+((pagina-1)*5));
@@ -180,17 +198,19 @@ void menu(){
       enxague = true;
      }
      if (ciclo == 6){//no ciclo tênis(6), o nível de água é sempre baixo
-      (agua = 1);
+      agua = 1;
      }
      if((p.x >= 267) && (p.x <= 303) && (p.y >= 310) && (p.y <= 470)&&(ciclo != 0)){ //tecla opções
+       tft.fillScreen(BLACK);//apaga o que está na tela
        con();
-       delay(1000);
        pagina = 5;
        return;//este return é para sair desta função quando for apertado o botão "opções".
        //Isso é necessário pois como o botão está no mesmo lugar do outro botão para continuar, quando é apertado o primeiro,o segundo também pode ser ativado,
        //devio ao fato de estar logo embaixo no código e só foi feita uma vez a verificação de posição do touch
      }
     }
+
+    
     if(pagina == 5){
      if((p.x >= 267) && (p.x <= 303) && (p.y >= 10)&& (p.y <= 170)){//tecla ciclos
       pagina = 1;
@@ -198,9 +218,10 @@ void menu(){
       agua = 0;
       enxague = false;
       passa = false;
-      modo(pagina);
+      tft.fillScreen(BLACK);//apaga o que está na tela
+      modo(pagina);//volta para tela de escolher os ciclos
      }
-     if(ciclo != 6){//no ciclo têncis(6), o nível baixo de água é sempre ativo
+     if(ciclo != 6){//no ciclo tênis(6), o nível baixo de água é sempre ativo
      if((p.x>=100) && (p.x <= 127) && (p.y <= 256) && (ciclo !=8)){//ciclo cobertor/manta(8) não possui seleção automática de água
        agua = 5;
        Serial.println(agua);
@@ -240,6 +261,8 @@ void menu(){
        con();
      }
      if((p.y>=238) && (p.y <= 470) && (p.x >= 267) && (p.x <= 303) && (agua != 0)){//tecla continuar
+      secagem = digitalRead(Tsecagem);//atribui o valor do pino que está conectado no botão da turbo secagem para a variável secage
+      
       Serial.println("");
       Serial.print("ciclo: ");
       Serial.println(ciclo);
@@ -249,8 +272,10 @@ void menu(){
       Serial.println(enxague);
       Serial.print("passa fácil: ");
       Serial.println(passa);
+      Serial.print("turbo secagem: ");
+      Serial.println(secagem);
       Serial.println("===============================");
-      tft.fillScreen(BLACK);
+      tft.fillScreen(BLACK);//apaga o que está na tela
       linhaTempo(0);
       pagina = 6;
       }
@@ -263,7 +288,6 @@ void modo (int pag){
 
    switch (pag){
     case 1:
-    tft.fillScreen(BLACK);
     tft.drawRoundRect(10, 10, ((6*13*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
     tft.setCursor((10 + (2*4)), (10 + (1*4)));
     tft.setTextColor(WHITE);
@@ -307,7 +331,6 @@ void modo (int pag){
     break;
 
     case 2:
-    tft.fillScreen(BLACK);
     tft.drawRoundRect(10, 10, ((6*15*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
     tft.setCursor((10 + (2*4)), (10 + (1*4)));
     tft.setTextColor(WHITE);
@@ -351,7 +374,6 @@ void modo (int pag){
     break;
     
     case 3:
-    tft.fillScreen(BLACK);
     tft.drawRoundRect(10, 10, ((6*15*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
     tft.setCursor((10 + (2*4)), (10 + (1*4)));
     tft.setTextColor(WHITE);
@@ -395,7 +417,6 @@ void modo (int pag){
     break;
 
     case 4:
-    tft.fillScreen(BLACK);
     tft.drawRoundRect(10, 10, ((6*12*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
     tft.setCursor((10 + (2*4)), (10 + (1*4)));
     tft.setTextColor(WHITE);
@@ -450,8 +471,6 @@ void modo (int pag){
 }
 
 void con(){
-    tft.fillScreen(BLACK);
-    
     tft.drawRoundRect(10, 10, ((6*13*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
     tft.setCursor((10 + (2*4)), (10 + (1*4)));
     tft.setTextColor(WHITE);
@@ -553,7 +572,7 @@ void linhaTempo(int fase){
     break;
     case 4:
     tft.print("toalha");
-    tft.drawRoundRect(10, 10, ((6*69*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
+    tft.drawRoundRect(10, 10, ((6*6*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
     break;
     case 5:
     tft.print("roupa de cama");
@@ -670,60 +689,300 @@ void linhaTempo(int fase){
     tft.setTextSize(3);
     tft.print("fim");
 }
-
+//maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool VPrincipal, bool VAmaciante)
 void EC(){
-  delay(1500);
+  if(agua == 5){//se é o nível automático
+    maquinaLavar(false, false, false, false, true, false);//liga a válvula
+    delay(5000);//espera 5 segundos
+    while(pressostato() < 150){//motor é ligado a cada 5 segundos por 0,4 segundo até que o nível de água seja igual ao nível baixo
+      maquinaLavar(false, false, true, false, true, false);
+      delay(400);
+      maquinaLavar(false, false, false, false, true, false);
+      delay(5000);
+    }
+    while(pressostato() < 360){//espera até que atinja o nível de água certo
+    }
+    maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+  }
+  
+  if(agua == 4){//se é o nível edredon
+    maquinaLavar(false, false, false, false, true, false);//liga a válvula
+    while(pressostato() < 360){//espera até que atinja o nível de água certo
+    }
+    maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+  }
+  
+  if(agua == 3){//se é o nível alto
+    maquinaLavar(false, false, false, false, true, false);//liga a válvula
+    while(pressostato() < 340){//espera até que atinja o nível de água certo
+    }
+    maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+  }
+
+  if(agua == 2){//se é o nível médio
+    maquinaLavar(false, false, false, false, true, false);//liga a válvula
+    while(pressostato() < 240){//espera até que atinja o nível de água certo
+    }
+    maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+  }
+  
+  if(agua == 1){//se é o nível baixo
+    maquinaLavar(false, false, false, false, true, false);//liga a válvula
+    while(pressostato() < 150){//espera até que atinja o nível de água certo
+    }
+    maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+  }
+
+  if(passa == true){//se a função passa fácil está ativada
+    if(agua == 2){//só acontece se for o nível médio ou baixo, pois são os únicos em que se aumentar o nível de água ainda fica dentro do limite esperado
+      maquinaLavar(false, false, false, false, true, false);//liga a válvula
+      while(pressostato() < 290){//adiciona mais 50mm de água
+      }
+      maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+    }
+    
+    if(agua == 1){//só acontece se for o nível médio ou baixo, pois são os únicos em que se aumentar o nível de água ainda fica dentro do limite esperado
+      maquinaLavar(false, false, false, false, true, false);//liga a válvula
+      while(pressostato() < 200){//adiciona mais 50mm de água
+      }
+      maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+    }
+  }
   }
 void A(){
-  delay(1500);
+  if(agua == 1){//nível de água baixo
+    maquinaLavar(true, false, false, false, false, false);//liga a bomba de drenagem (bool eletrobomba)
+    while(pressostato() > 15){//enquanto o pressostatao estiver com mais de 15mm de coluna de água, esperar
+    }
+    delay(35000);//espera mais 35 segundos
+    maquinaLavar(false, false, false, false, false, false);//desliga a bomba de drenagem (bool eletrobomba)
+  }
+  if(agua >=2 ){
+    maquinaLavar(true, false, false, false, false, false);//liga a bomba de drenagem (bool eletrobomba)
+    delay(45000);//espera 45 segundos
+    maquinaLavar(false, false, false, false, false, false);//desliga a bomba de drenagem (bool eletrobomba)
+    agitacao(40/60);//função agitação por 40 segundos (40/60 de minuto)
+    delay(5000);//espera  5 segundos
+    maquinaLavar(true, false, false, false, false, false);//liga a bomba de drenagem (bool eletrobomba)
+    while(pressostato() > 15){//enquanto o pressostatao estiver com mais de 15mm de coluna de água, esperar
+    }
+    delay(35000);//espera mais 35 segundos
+    maquinaLavar(false, false, false, false, false, false);//desliga a bomba de drenagem (bool eletrobomba)
+  }
   }
 void B(){
-  delay(1500);
+  maquinaLavar(false, false, true, false, false, false);
+  delay(30000);
+  maquinaLavar(false, false, false, false, false, false);
+  delay(50000);
   }
 void C(){
-  delay(1500);
+//tabela que controla o movimento do motor mo sentido horáio e anti-horário e a válvula de sabão
+bool tabela[3][75]{//1º motor horário, 2ºmotor anti-horário, 3º válvula
+{true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false},
+{false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false},
+{true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,false,false,false},
+};
+for(int i=0; i<=75; i++){
+  maquinaLavar(false, false, (tabela[1][i]), (tabela[2][i]), (tabela[3][i]), false);//executa o que está escrito na tabela
+}
   }
 void D(){
-  delay(1500);
+  maquinaLavar(false, false, true, false, false, false);
+  delay(30000);
+  maquinaLavar(false, false, false, false, false, false);
+  delay(100000);
   }
 void E(){
-  delay(1500);
+  maquinaLavar(false, true, false, false, false, false);
+  delay(5000);
+  maquinaLavar(false, true, true, false, false, false);
+  delay(5000);
+  maquinaLavar(false, false, false, false, false, false);
   }
-void F_(){
-  delay(1500);
-  } //por algum motivo void F() dá erro ao compitar, por isso void F_()
+void F_(){//por algum motivo void F() dá erro ao compitar, por isso void F_()
+  maquinaLavar(false, false, false, false, true, false);//liga a valvula de sabão(principal)
+  while(pressostato() < 310){//espera até que a coluna dágua seja de até 310 mm
+  }
+  maquinaLavar(false, false, false, false, false, false);//desliga a valvula de sabão(principal)
+  agitacao(1); //agitação por 1 min
+  maquinaLavar(false, false, false, false, false, true);//liga a valvula de amaciante
+  delay(40000);
+  maquinaLavar(false, false, false, false, false, false);//desliga a valvula de amaciante
+  agitacao(10/60); //agitação por 10 segundos (10/60 de minuto)
+  maquinaLavar(false, false, false, false, false, true);//liga a valvula de amaciante
+  delay(30000);
+  maquinaLavar(false, false, false, false, false, false);//desliga a valvula de amaciante
+  agitacao(10/60); //agitação por 10 segundos (10/60 de minuto)
+  maquinaLavar(false, false, false, false, false, true);//liga a valvula de amaciante
+  delay(30000);
+  maquinaLavar(false, false, false, false, false, false);//desliga a valvula de amaciante
+  } 
 void FR(){
-  delay(1500);
+  maquinaLavar(false, false, false, false, true, false);//liga a valvula de sabão(principal)
+  while(pressostato() < 310){//espera até que a coluna dágua seja de até 310 mm
+  }
+  maquinaLavar(false, false, false, false, false, false);//desliga a valvula de sabão(principal)
+  agitacao(30/60); //agitação por 30 segundos (30/60 de minuto)
+  maquinaLavar(false, false, false, false, false, true);//liga a valvula de amaciante
+  delay(40000);
+  maquinaLavar(false, false, false, false, false, false);//desliga a valvula de amaciante
+  agitacao(10/60); //agitação por 10 segundos (10/60 de minuto)
+  maquinaLavar(false, false, false, false, false, true);//liga a valvula de amaciante
+  delay(30000);
+  maquinaLavar(false, false, false, false, false, false);//desliga a valvula de amaciante
+  agitacao(10/60); //agitação por 10 segundos (10/60 de minuto)
+  maquinaLavar(false, false, false, false, false, true);//liga a valvula de amaciante
+  delay(30000);
+  maquinaLavar(false, false, false, false, false, false);//desliga a valvula de amaciante
   }
 void G(){
-  delay(1500);
+  for(int i = 1; i <= 4; i++){//repita 4 vezes
+    maquinaLavar(false, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação
+    delay(50000);//delay de 50 segundos
+    maquinaLavar(false, true, false, false, false, false);//desliga o motor
+    delay(70000);//delay de 70 segundos
+  }
   }
 void H(){
-  delay(1500);
+  maquinaLavar(false, false, false, false, false, false);//desliga o motor
+  delay(100000); //delay de 100 segundos
   }
 void HR(){
-  delay(1500);
+  maquinaLavar(false, false, false, false, false, false);//desliga o motor
+  delay(40000); //delay de 40 segundos
   }
 void I(){
-  delay(1500);
+  maquinaLavar(false, false, true, false, false, false);//liga o motor no sentido horário
+  delay(30000);//delay de 30 segundos
+  maquinaLavar(false, false, false, false, false, false);//desliga o motor 
+  delay(70000);//delay de 70 segundos
   }
 void J(){
-  delay(1500);
+  for(int i = 1; i <= 5; i++){//repita 5 vezes
+    maquinaLavar(false, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação
+    delay(50000);//delay de 50 segundos
+    maquinaLavar(false, true, false, false, false, false);//desliga o motor
+    delay(70000);//delay de 70 segundos
   }
+}
 void K(){
-  delay(1500);
+  C();
+  C();
   }
 void L(){
-  delay(1500);
+  for(int i = 1; i <= 6; i++){//repita 6 vezes
+    maquinaLavar(false, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação
+    delay(50000);//delay de 50 segundos
+    maquinaLavar(false, true, false, false, false, false);//desliga o motor
+    delay(70000);//delay de 70 segundos
   }
-void agitacao(int tempo){
-  delay(1500);
+}
+//maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool VPrincipal, bool VAmaciante)
+void agitacao(float tempo){//tempo em minutos
+  for(int i = 1; i<=tempo; i++){//como cada loop dura 1 minuto, a quanidade de vezes que será feito o loop será o tempo em minutos da função
+  
+  int To = millis();//Tempo inicial
+  
+  while(To + 10000 < millis){//enquanto não tiver passsado 10 segundos desde a definiçãa de To(início)
+   //toda vez que liga/deliga o motor, o freio e a bomba estarão ligadas:
+  if((ciclo >= 1) && (ciclo <= 10) && (ciclo != 6)){//se é um ciclo normal ou especial que não é o tênis
+    maquinaLavar(true, true, false, true, false, false);//liga motor anti-horário
+    delay(400);//delay de 0,4 segundo
+    maquinaLavar(true, true, false, false, false, false);//desliga motor
+    delay(600);//delay de 0,6 segundo
+    maquinaLavar(true, true, false, false, true, false);//liga motor horário
+    delay(460);//delay de 0,46 segundo
+    maquinaLavar(true, true, false, false, false, false);//desliga motor
+    delay(600);//delay de 0,6 segundo
   }
-void molho(int tempo){
-  delay(1500);
+  if((ciclo >= 11) && (ciclo <= 15)){//se é um ciclo delicado
+    maquinaLavar(true, true, false, true, false, false);//liga motor anti-horário
+    delay(200);//delay de 0,2 segundo
+    maquinaLavar(true, true, false, false, false, false);//desliga motor
+    delay(700);//delay de 0,7 segundo
+    maquinaLavar(true, true, false, false, true, false);//liga motor horário
+    delay(260);//delay de 0,26 segundo
+    maquinaLavar(true, true, false, false, false, false);//desliga motor
+    delay(700);//delay de 0,7 segundo
   }
-void centrifugacao(int tempo){
-  delay(1500);
+  if((ciclo >= 16) && (ciclo <= 20)){//se é um ciclo turbo
+    maquinaLavar(true, true, false, true, false, false);//liga motor anti-horário
+    delay(460);//delay de 0,46 segundo
+    maquinaLavar(true, true, false, false, false, false);//desliga motor
+    delay(100);//delay de 0,1 segundo
+    maquinaLavar(true, true, false, false, true, false);//liga motor horário
+    delay(560);//delay de 0,56 segundo
+    maquinaLavar(true, true, false, false, false, false);//desliga motor
+    delay(100);//delay de 0,1 segundo
+  }
+  if(ciclo = 6){//se é o ciclo de tênis
+    maquinaLavar(true, true, false, true, false, false);//liga motor anti-horário
+    delay(300);//delay de 0,2 segundo
+    maquinaLavar(true, true, false, false, false, false);//desliga motor
+    delay(860);//delay de 0,7 segundo
+    maquinaLavar(true, true, false, false, true, false);//liga motor horário
+    delay(300);//delay de 0,3 segundo
+    maquinaLavar(true, true, false, false, false, false);//desliga motor
+    delay(860);//delay de 0,86 segundo
+  }
+  }
+  
+  To = millis();//Tempo inicial
+  
+  while(To + 50000 < millis){//enquanto não tiver passsado 50 segundos desde a definiçãa de To(início)
+   //toda vez que liga/deliga o motor, o freio estará ligaado e a bomba estará desligada:
+  if((ciclo >= 1) && (ciclo <= 10) && (ciclo != 6)){//se é um ciclo normal ou especial que não é o tênis
+    maquinaLavar(false, true, false, true, false, false);//liga motor anti-horário
+    delay(400);//delay de 0,4 segundo
+    maquinaLavar(false, true, false, false, false, false);//desliga motor
+    delay(600);//delay de 0,6 segundo
+    maquinaLavar(false, true, false, false, true, false);//liga motor horário
+    delay(460);//delay de 0,46 segundo
+    maquinaLavar(false, true, false, false, false, false);//desliga motor
+    delay(600);//delay de 0,6 segundo
+  }
+  if((ciclo >= 11) && (ciclo <= 15)){//se é um ciclo delicado
+    maquinaLavar(false, true, false, true, false, false);//liga motor anti-horário
+    delay(200);//delay de 0,2 segundo
+    maquinaLavar(false, true, false, false, false, false);//desliga motor
+    delay(700);//delay de 0,7 segundo
+    maquinaLavar(false, true, false, false, true, false);//liga motor horário
+    delay(260);//delay de 0,26 segundo
+    maquinaLavar(false, true, false, false, false, false);//desliga motor
+    delay(700);//delay de 0,7 segundo
+  }
+  if((ciclo >= 16) && (ciclo <= 20)){//se é um ciclo turbo
+    maquinaLavar(false, true, false, true, false, false);//liga motor anti-horário
+    delay(460);//delay de 0,46 segundo
+    maquinaLavar(false, true, false, false, false, false);//desliga motor
+    delay(100);//delay de 0,1 segundo
+    maquinaLavar(false, true, false, false, true, false);//liga motor horário
+    delay(560);//delay de 0,56 segundo
+    maquinaLavar(false, true, false, false, false, false);//desliga motor
+    delay(100);//delay de 0,1 segundo
+  }
+  if(ciclo = 6){//se é o ciclo de tênis
+    maquinaLavar(false, true, false, true, false, false);//liga motor anti-horário
+    delay(300);//delay de 0,2 segundo
+    maquinaLavar(false, true, false, false, false, false);//desliga motor
+    delay(860);//delay de 0,7 segundo
+    maquinaLavar(false, true, false, false, true, false);//liga motor horário
+    delay(300);//delay de 0,3 segundo
+    maquinaLavar(false, true, false, false, false, false);//desliga motor
+    delay(860);//delay de 0,86 segundo
+  }
+  }
+  }
+}
+
+void molho(float tempo){//tempo em minutos
+  maquinaLavar(false, true, false, true, false, false);
+  delay(tempo*60000);//como o tempo está em minutos, é necessário multiplicar por 60.000 para comverter em milissegundos
+  }
+void centrifugacao(float tempo){//tempo em minutos
+  maquinaLavar(false, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação
+  delay(tempo*60000);//como o tempo está em minutos, é necessário multiplicar por 60.000 para comverter em milissegundos
   }
   
 void lavagem(){
@@ -871,6 +1130,18 @@ void lavagem(){
   if(fase == 7){//fim
     Serial.println("fim");
     linhaTempo(fase);
+    //reseta todas as variáveis globais para voltar para o estado inicial de escolher o ciclo, para poder faer outra lavagem
+    pagina = 1;
+    ciclo = 0;
+    agua = 0;
+    enxague = false;
+    passa = false;
+    secagem = false;
+    fase = 1;
+    fase2 = 0;  
+    tft.fillScreen(BLACK);//apaga o que está na tela
+    modo(1);//para começar tudo de novo.
+    return;
   }
   if (fase2 != 0){
     tft.fillRect(10, 60, 30, 240, BLACK);
@@ -937,4 +1208,44 @@ void timerRoutine(){
     }
   }
   Serial.println(millis());
+}
+
+void maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool VPrincipal, bool VAmaciante){ //função que controla a máguina de lavar
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+  digitalWrite(enableF, LOW);//desliga o pino dde enable que fica depois do register
+  
+  digitalWrite(info, VAmaciante);//escreve no pino a informação que está na variável
+  digitalWrite(enableR, HIGH);//liga o pino enable do register
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+
+  digitalWrite(info, VPrincipal);//escreve no pino a informação que está na variável
+  digitalWrite(enableR, HIGH);//liga o pino enable do register
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+
+  digitalWrite(info, motorH);//escreve no pino a informação que está na variável
+  digitalWrite(enableR, HIGH);//liga o pino enable do register
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+    
+  digitalWrite(info, motorA);//escreve no pino a informação que está na variável
+  digitalWrite(enableR, HIGH);//liga o pino enable do register
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+
+  digitalWrite(info, freio);//escreve no pino a informação que está na variável
+  digitalWrite(enableR, HIGH);//liga o pino enable do register
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+
+  digitalWrite(info, eletrobomba);//escreve no pino a informação que está na variável
+  digitalWrite(enableR, HIGH);//liga o pino enable do register
+  digitalWrite(enableR, LOW);//desliga o pino enable do register
+
+  digitalWrite(enableF, HIGH);//liga o pino dde enable que fica depois do register
+  digitalWrite(enableF, LOW);//desliga o pino dde enable que fica depois do register
+}
+int pressostato(){
+  int coluna = 0;//variável que guarda o valor da coluna d'água em milímetros
+  coluna = analogRead(pres);
+  Serial.println("");
+  Serial.print("coluna d'agua (mm): ");
+  Serial.print(map(coluna, 1, 5, 0, 400));
+  return map(coluna, 1, 5, 0, 400);//retorna o valor do mapeamento da variável coluna, que está na escala de 1 a 5, para um valor de 0 a 400
 }

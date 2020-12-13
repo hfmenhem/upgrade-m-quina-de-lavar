@@ -691,7 +691,63 @@ void linhaTempo(int fase){
 }
 //maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool VPrincipal, bool VAmaciante)
 void EC(){
-  delay(1500);
+  if(agua == 5){//se é o nível automático
+    maquinaLavar(false, false, false, false, true, false);//liga a válvula
+    delay(5000);//espera 5 segundos
+    while(pressostato() < 150){//motor é ligado a cada 5 segundos por 0,4 segundo até que o nível de água seja igual ao nível baixo
+      maquinaLavar(false, false, true, false, true, false);
+      delay(400);
+      maquinaLavar(false, false, false, false, true, false);
+      delay(5000);
+    }
+    while(pressostato() < 360){//espera até que atinja o nível de água certo
+    }
+    maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+  }
+  
+  if(agua == 4){//se é o nível edredon
+    maquinaLavar(false, false, false, false, true, false);//liga a válvula
+    while(pressostato() < 360){//espera até que atinja o nível de água certo
+    }
+    maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+  }
+  
+  if(agua == 3){//se é o nível alto
+    maquinaLavar(false, false, false, false, true, false);//liga a válvula
+    while(pressostato() < 340){//espera até que atinja o nível de água certo
+    }
+    maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+  }
+
+  if(agua == 2){//se é o nível médio
+    maquinaLavar(false, false, false, false, true, false);//liga a válvula
+    while(pressostato() < 240){//espera até que atinja o nível de água certo
+    }
+    maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+  }
+  
+  if(agua == 1){//se é o nível baixo
+    maquinaLavar(false, false, false, false, true, false);//liga a válvula
+    while(pressostato() < 150){//espera até que atinja o nível de água certo
+    }
+    maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+  }
+
+  if(passa == true){//se a função passa fácil está ativada
+    if(agua == 2){//só acontece se for o nível médio ou baixo, pois são os únicos em que se aumentar o nível de água ainda fica dentro do limite esperado
+      maquinaLavar(false, false, false, false, true, false);//liga a válvula
+      while(pressostato() < 290){//adiciona mais 50mm de água
+      }
+      maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+    }
+    
+    if(agua == 1){//só acontece se for o nível médio ou baixo, pois são os únicos em que se aumentar o nível de água ainda fica dentro do limite esperado
+      maquinaLavar(false, false, false, false, true, false);//liga a válvula
+      while(pressostato() < 200){//adiciona mais 50mm de água
+      }
+      maquinaLavar(false, false, false, false, false, false);//desliga a válvula
+    }
+  }
   }
 void A(){
   if(agua == 1){//nível de água baixo

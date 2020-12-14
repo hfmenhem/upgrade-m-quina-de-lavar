@@ -1059,7 +1059,7 @@ void lavagem(){
   EC(); //<-todos os programas precisam no inico
   //molho longo+agitação
   if (fase2 != 0){
-    tft.fillRect(10, 60, 30, 240, BLACK);
+    tft.fillRect(10, 60, 36, 240, BLACK);
     fase = fase2;
     fase2 = 0;
     }
@@ -1075,7 +1075,7 @@ void lavagem(){
   }
   
   if (fase2 != 0){
-    tft.fillRect(10, 60, 30, 240, BLACK);
+    tft.fillRect(10, 60, 36, 240, BLACK);
     fase = fase2;
     fase2 = 0;
   }
@@ -1091,7 +1091,7 @@ void lavagem(){
   }
   
   if (fase2 != 0){
-    tft.fillRect(10, 60, 30, 240, BLACK);
+    tft.fillRect(10, 60, 36, 240, BLACK);
     fase = fase2;
     fase2 = 0;
   }
@@ -1107,7 +1107,7 @@ void lavagem(){
   }
   
   if (fase2 != 0){
-    tft.fillRect(10, 60, 30, 240, BLACK);
+    tft.fillRect(10, 60, 36, 240, BLACK);
     fase = fase2;
     fase2 = 0;
   }
@@ -1123,7 +1123,7 @@ void lavagem(){
   }
   
   if (fase2 != 0){
-    tft.fillRect(10, 60, 30, 240, BLACK);
+    tft.fillRect(10, 60, 36, 240, BLACK);
     fase = fase2;
     fase2 = 0;
     }
@@ -1156,7 +1156,7 @@ void lavagem(){
   }
   
   if (fase2 != 0){
-    tft.fillRect(10, 60, 30, 240, BLACK);
+    tft.fillRect(10, 60, 36, 240, BLACK);
     fase = fase2;
     fase2 = 0;
     }
@@ -1204,7 +1204,7 @@ void lavagem(){
   }
   
   if (fase2 != 0){
-    tft.fillRect(10, 60, 30, 240, BLACK);
+    tft.fillRect(10, 60, 36, 240, BLACK);
     fase = fase2;
     fase2 = 0;
     }

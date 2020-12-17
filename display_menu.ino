@@ -2,6 +2,7 @@
 #include <Adafruit_GFX.h> //Biblioteca grafica
 #include <TouchScreen.h>  //Biblioteca Touch
 #include <TimerThree.h> //Biblioteca para gerenciar o timer 3 do arduino mega
+#include <TimerOne.h>//Biblioteca para gerenciar o timer 1
 
 #define YP A3 // Y+ is on Analog1
 #define XM A2 // X- is on Analog2
@@ -41,6 +42,7 @@ MCUFRIEND_kbv tft;
 #define enableF 49  //pino que será o enable da saída do register
 #define Tsecagem 47  //pino que está ligado no botão de turbo secagem
 #define pres A15 //pino que será a entrada de informação do pressostato
+#define tampa 45 //pino que será a entrada de informação da tampa
 
 int pagina = 1;
 int ciclo = 0;
@@ -51,6 +53,8 @@ bool secagem = false;
 int fase = 1;//variavel que controla em qual ciclo a lavagem está
 int fase2 = 0; //variavel que controla em qual ciclo a lavagem pode ser que esteja na próxima
 int velocidade = 1;
+int maquina = 0;
+int pressao = 400;
 //tabela referente aos ciclos da maquina de lavar:
 /*
 primeiro dígito: função
@@ -118,7 +122,11 @@ void setup()
   Serial.begin(9600);
   Timer3.initialize(100000);//inicializa o Timer3 com periodo de 0,1 segundo (100.000 microssegundos)
   Timer3.attachInterrupt(timerRoutine);//timerRoutine() agora é uma função que faz uma interrupção no código a cada 0,1 segundo
+
+  Timer1.initialize(5000000);//inicializa o Timer1 com periodo de 5 segundos (5.000.000 microssegundos)
+  Timer1.attachInterrupt(erros);//erros() agora é uma função que faz uma interrupção no código a cada50 segundo
  
+
   tft.reset();
   tft.begin(tft.readID());
   tft.fillScreen(BLACK);
@@ -127,7 +135,8 @@ void setup()
   pinMode(info, OUTPUT);//pino que transmitirá a informação para a máquina de lavar
   pinMode(enableR, OUTPUT);//pino que será o enable do register
   pinMode(enableF, OUTPUT);//pino que será o enable da saída do register
-  pinMode(A15, INPUT);//pino que será a entrada de informação do pressostato
+  pinMode(pres, INPUT);//pino que será a entrada de informação do pressostato
+  pinMode(tampa, INPUT);//pino que será a entrada de informação da tampa
 
   digitalWrite(info, LOW);
   digitalWrite(enableR, LOW);
@@ -741,6 +750,7 @@ void linhaTempo(int fase){
 }
 //maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool VPrincipal, bool VAmaciante)
 void EC(){
+  int tempo = millis();
   Serial.println("EC");
   if(agua == 5){//se é o nível automático
     maquinaLavar(false, false, false, false, true, false);//liga a válvula
@@ -750,8 +760,14 @@ void EC(){
       delay(400);
       maquinaLavar(false, false, false, false, true, false);
       delay(5000);
+      if (millis() > (tempo + 90*60000)){//se se passou mais de 90 min
+        telaErro(2);//erro: água ligada por mais de 90 min
+      }
     }
     while(pressostato() < 360){//espera até que atinja o nível de água certo
+      if (millis() > (tempo + 90*60000)){//se se passou mais de 90 min
+        telaErro(2);//erro: água ligada por mais de 90 min
+      }
     }
     maquinaLavar(false, false, false, false, false, false);//desliga a válvula
   }
@@ -759,6 +775,9 @@ void EC(){
   if(agua == 4){//se é o nível edredon
     maquinaLavar(false, false, false, false, true, false);//liga a válvula
     while(pressostato() < 360){//espera até que atinja o nível de água certo
+      if (millis() > (tempo + 90*60000)){//se se passou mais de 90 min
+        telaErro(2);//erro: água ligada por mais de 90 min
+      }
     }
     maquinaLavar(false, false, false, false, false, false);//desliga a válvula
   }
@@ -766,6 +785,9 @@ void EC(){
   if(agua == 3){//se é o nível alto
     maquinaLavar(false, false, false, false, true, false);//liga a válvula
     while(pressostato() < 340){//espera até que atinja o nível de água certo
+      if (millis() > (tempo + 90*60000)){//se se passou mais de 90 min
+        telaErro(2);//erro: água ligada por mais de 90 min
+      }
     }
     maquinaLavar(false, false, false, false, false, false);//desliga a válvula
   }
@@ -773,6 +795,9 @@ void EC(){
   if(agua == 2){//se é o nível médio
     maquinaLavar(false, false, false, false, true, false);//liga a válvula
     while(pressostato() < 240){//espera até que atinja o nível de água certo
+      if (millis() > (tempo + 90*60000)){//se se passou mais de 90 min
+        telaErro(2);//erro: água ligada por mais de 90 min
+      }
     }
     maquinaLavar(false, false, false, false, false, false);//desliga a válvula
   }
@@ -780,6 +805,9 @@ void EC(){
   if(agua == 1){//se é o nível baixo
     maquinaLavar(false, false, false, false, true, false);//liga a válvula
     while(pressostato() < 150){//espera até que atinja o nível de água certo
+      if (millis() > (tempo + 90*60000)){//se se passou mais de 90 min
+        telaErro(2);//erro: água ligada por mais de 90 min
+      }
     }
     maquinaLavar(false, false, false, false, false, false);//desliga a válvula
   }
@@ -788,6 +816,9 @@ void EC(){
     if(agua == 2){//só acontece se for o nível médio ou baixo, pois são os únicos em que se aumentar o nível de água ainda fica dentro do limite esperado
       maquinaLavar(false, false, false, false, true, false);//liga a válvula
       while(pressostato() < 290){//adiciona mais 50mm de água
+        if (millis() > (tempo + 90*60000)){//se se passou mais de 90 min
+        telaErro(2);//erro: água ligada por mais de 90 min
+      }
       }
       maquinaLavar(false, false, false, false, false, false);//desliga a válvula
     }
@@ -795,6 +826,9 @@ void EC(){
     if(agua == 1){//só acontece se for o nível médio ou baixo, pois são os únicos em que se aumentar o nível de água ainda fica dentro do limite esperado
       maquinaLavar(false, false, false, false, true, false);//liga a válvula
       while(pressostato() < 200){//adiciona mais 50mm de água
+        if (millis() > (tempo + 90*60000)){//se se passou mais de 90 min
+        telaErro(2);//erro: água ligada por mais de 90 min
+      }
       }
       maquinaLavar(false, false, false, false, false, false);//desliga a válvula
     }
@@ -802,9 +836,14 @@ void EC(){
   }
 void A(){
   Serial.println("A");
+  int nivel = pressostato();
+  int tempo = millis();
   if(agua == 1){//nível de água baixo
     maquinaLavar(true, false, false, false, false, false);//liga a bomba de drenagem (bool eletrobomba)
     while(pressostato() > 15){//enquanto o pressostatao estiver com mais de 15mm de coluna de água, esperar
+      if (((pressostato+ 10) >= nivel) && (millis > (tempo + (60 * 10000)))){//se demorou mias de 10 min para mudar o nível da água
+        telaErro(3);
+      }
     }
     delay(35000);//espera mais 35 segundos
     maquinaLavar(false, false, false, false, false, false);//desliga a bomba de drenagem (bool eletrobomba)
@@ -898,7 +937,7 @@ void FR(){
 void G(){
   Serial.println("G");
   for(int i = 1; i <= 4; i++){//repita 4 vezes
-    maquinaLavar(false, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação
+    maquinaLavar(true, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação. também liga a eletrobomb para tirar a água
     delay(50000/velocidade);//delay de 50 segundos
     maquinaLavar(false, true, false, false, false, false);//desliga o motor
     delay(70000/velocidade);//delay de 70 segundos
@@ -924,7 +963,7 @@ void I(){
 void J(){
   Serial.println("J");
   for(int i = 1; i <= 5; i++){//repita 5 vezes
-    maquinaLavar(false, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação
+    maquinaLavar(true, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação.Também liga a eletrobomb para tirar a água
     delay(50000/velocidade);//delay de 50 segundos
     maquinaLavar(false, true, false, false, false, false);//desliga o motor
     delay(70000/velocidade);//delay de 70 segundos
@@ -938,7 +977,7 @@ void K(){
 void L(){
   Serial.println("L");
   for(int i = 1; i <= 6; i++){//repita 6 vezes
-    maquinaLavar(false, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação
+    maquinaLavar(true, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação. Também liga a eletrobomb para tirar a água
     delay(50000/velocidade);//delay de 50 segundos
     maquinaLavar(false, true, false, false, false, false);//desliga o motor
     delay(70000/velocidade);//delay de 70 segundos
@@ -1050,7 +1089,7 @@ void molho(float tempo){//tempo em minutos
   }
 void centrifugacao(float tempo){//tempo em minutos
   Serial.println("centrifugação");
-  maquinaLavar(false, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação
+  maquinaLavar(true, true, false, true, false, false);//liga o motor no sentido ant-horário e o freio para poder fazer a centrifugação.  Também liga a eletrobomb para tirar a água
   delay((tempo*60000)/velocidade);//como o tempo está em minutos, é necessário multiplicar por 60.000 para comverter em milissegundos
   maquinaLavar(false, false, false, false, false, false);//desliga o motor  e o freio 
   }
@@ -1170,7 +1209,7 @@ void lavagem(){
     if(ciclo != 10){//para generalizar,´é necessário introduzir esta exeção pois todos os ciclos passam por K();, menos o "rápido 25min", que que pula esta parte
       K(); 
     }
-    if (passa == false && secagem == false){
+    if ((passa == false && secagem == false) || (passa == true && secagem == true)){
     if((tabela[ciclo][16]/100) == 5){//isso significa que é para fazer a função G();
       G();
     }
@@ -1178,7 +1217,7 @@ void lavagem(){
       J();
     }
     if((tabela[ciclo][16]/100) == 3){//isso significa que é para fazer a função agitacao(int tempo);
-      agitacao(tabela[ciclo][16]%100);//executa a função agitacao com o valor dos dois ultimos digitos do valor numero 16 da tabela
+      centrifugacao(tabela[ciclo][16]%100);//executa a função centrifugação com o valor dos dois ultimos digitos do valor numero 16 da tabela
     }
     }
     //esta parte do programa é referente aos modos passa fácil e turbo secagem e a função executada com o item numero 18 da lista:
@@ -1295,6 +1334,10 @@ void timerRoutine(){
 }
 
 void maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool VPrincipal, bool VAmaciante){ //função que controla a máguina de lavar
+  noInterrupts();
+
+  maquina = ((VAmaciante) + (VPrincipal*2) + (motorA*4) + (motorH*8) + (freio*16) + (eletrobomba*32));
+  
   digitalWrite(enableR, LOW);//desliga o pino enable do register
   digitalWrite(enableF, LOW);//desliga o pino dde enable que fica depois do register
   
@@ -1324,6 +1367,7 @@ void maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool V
 
   digitalWrite(enableF, HIGH);//liga o pino dde enable que fica depois do register
   digitalWrite(enableF, LOW);//desliga o pino dde enable que fica depois do register
+  interrupts();
 }
 int pressostato(){
   int coluna = 0;//variável que guarda o valor da coluna d'água em milímetros
@@ -1332,4 +1376,69 @@ int pressostato(){
   Serial.print("coluna d'agua (mm): ");
   Serial.print(map(coluna, 1, 5, 0, 400));
   return map(coluna, 1, 5, 0, 400);//retorna o valor do mapeamento da variável coluna, que está na escala de 1 a 5, para um valor de 0 a 400
+}
+void erros (){
+  if (pagina == 6){//se está na página que mostra a linha do tempo(última página)
+  bool tampaAberta = digitalRead(tampa);
+  if(tampaAberta == true){//se a tampa está aberta
+    int estadoAnterior = maquina;//guarda o valor de maquina para estadoAnterior
+    maquinaLavar(false, false, false, false, false, false); //desliga tudo da máquina de lavar
+    telaErro(1);
+    while(tampaAberta == true){//espera a´te que a tampa esteja fechada
+    }
+    linhaTempo(fase);
+    maquinaLavar((estadoAnterior & 1), (estadoAnterior & 2), (estadoAnterior & 4), (estadoAnterior & 8), (estadoAnterior & 16), (estadoAnterior & 32));//religa o que estava ligado a partir do valor da variável estadoAnterior
+  }
+  if(maquina & 32 == 0){//se nçao está ligado a drenagem
+    if(pressostato() > (pressao + 15)){//se o nível de água abaixou
+      int estadoAnterior = maquina;//guarda o valor de maquina para estadoAnterior
+      maquinaLavar(true, false, false, false, false, false); //liga a drenagem
+      telaErro(4);
+      while(pressostato() > (pressao + 15)){}//espera até que o nível de água volte ao normal
+      linhaTempo(fase);
+      maquinaLavar((estadoAnterior & 1), (estadoAnterior & 2), (estadoAnterior & 4), (estadoAnterior & 8), (estadoAnterior & 16), (estadoAnterior & 32));//religa o que estava ligado a partir do valor da variável estadoAnterior
+    }
+    pressao = pressostato();//guarda valor da coluna d'água para usar na próxima chegagem
+  }
+  }
+  
+ }
+
+void telaErro(int erro){
+  
+  tft.fillScreen(BLACK);
+  
+  switch(erro){
+    case 1:
+      tft.drawRoundRect(10, 10, ((6*12*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
+      tft.setCursor((10 + (2*4)), (10 + (1*4)));
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      tft.print("porta aberta");
+  
+    case 2:
+      maquinaLavar(false, false, false, false, false, false);
+      tft.drawRoundRect(10, 10, ((6*24*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
+      tft.setCursor((10 + (2*4)), (10 + (1*4)));
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      tft.print("enchimento demorou muito");
+      while(1 == 2){}//para
+
+    case 3:
+      maquinaLavar(false, false, false, false, false, false);
+      tft.drawRoundRect(10, 10, ((6*22*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
+      tft.setCursor((10 + (2*4)), (10 + (1*4)));
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      tft.print("esvaziar demorou muito");
+
+    case 4:
+      tft.drawRoundRect(10, 10, ((6*22*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
+      tft.setCursor((10 + (2*4)), (10 + (1*4)));
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      tft.print("drenando agua sobrando");
+  }
+  
 }

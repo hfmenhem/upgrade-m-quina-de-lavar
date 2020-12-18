@@ -1954,27 +1954,27 @@ void maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool V
   digitalWrite(enableR, LOW); //desliga o pino enable do register
   digitalWrite(enableF, LOW); //desliga o pino dde enable que fica depois do register
 
-  digitalWrite(info, VAmaciante); //escreve no pino a informação que está na variável
+  digitalWrite(info, (!VAmaciante)); //escreve no pino a informação que está na variável
   digitalWrite(enableR, HIGH);    //liga o pino enable do register
   digitalWrite(enableR, LOW);     //desliga o pino enable do register
 
-  digitalWrite(info, VPrincipal); //escreve no pino a informação que está na variável
+  digitalWrite(info, (!VPrincipal)); //escreve no pino a informação que está na variável
   digitalWrite(enableR, HIGH);    //liga o pino enable do register
   digitalWrite(enableR, LOW);     //desliga o pino enable do register
 
-  digitalWrite(info, motorH);  //escreve no pino a informação que está na variável
+  digitalWrite(info, (!motorH));  //escreve no pino a informação que está na variável
   digitalWrite(enableR, HIGH); //liga o pino enable do register
   digitalWrite(enableR, LOW);  //desliga o pino enable do register
 
-  digitalWrite(info, motorA);  //escreve no pino a informação que está na variável
+  digitalWrite(info, (!motorA));  //escreve no pino a informação que está na variável
   digitalWrite(enableR, HIGH); //liga o pino enable do register
   digitalWrite(enableR, LOW);  //desliga o pino enable do register
 
-  digitalWrite(info, freio);   //escreve no pino a informação que está na variável
+  digitalWrite(info, (!freio));   //escreve no pino a informação que está na variável
   digitalWrite(enableR, HIGH); //liga o pino enable do register
   digitalWrite(enableR, LOW);  //desliga o pino enable do register
 
-  digitalWrite(info, eletrobomba); //escreve no pino a informação que está na variável
+  digitalWrite(info, (!eletrobomba)); //escreve no pino a informação que está na variável
   digitalWrite(enableR, HIGH);     //liga o pino enable do register
   digitalWrite(enableR, LOW);      //desliga o pino enable do register
 

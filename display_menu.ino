@@ -55,6 +55,9 @@ int fase2 = 0; //variavel que controla em qual ciclo a lavagem pode ser que este
 int velocidade = 1;
 int maquina = 0;
 int pressao = 400;
+int debug = 0;
+int paginaDebug = 1;
+int maquinaDebug = 0;
 //tabela referente aos ciclos da maquina de lavar:
 /*
 primeiro dígito: função
@@ -174,7 +177,7 @@ void setup()
 
   tft.fillRect(369, 160, 4, 140, WHITE);
 //---------------------------
-  delay(10000);
+  delay(5000);
   tft.fillScreen(BLACK);
   modo(1);
 }
@@ -182,6 +185,10 @@ void loop()
 {
   if (pagina == 6){
    lavagem();
+  }
+  else if(pagina == 7){
+   testes();
+   sensor();
   }
   else{
     menu();
@@ -309,6 +316,7 @@ void menu(){
      }
      if((p.y>=332) && (p.y <= 470) && (p.x >= 70) && (p.x <= 124)){ //tecla de duplo enxague
        if((ciclo != 6) && (ciclo != 13)){//nos ciclos tenis(6) e roupa preta(9) duplo enxague está sempre ativo
+       debug ++;
        enxague = (!enxague);
        Serial.println(enxague);
        con();
@@ -320,7 +328,7 @@ void menu(){
        con();
      }
      if((p.y>=238) && (p.y <= 470) && (p.x >= 267) && (p.x <= 303) && (agua != 0)){//tecla continuar
-      secagem = digitalRead(Tsecagem);//atribui o valor do pino que está conectado no botão da turbo secagem para a variável secage
+      secagem = digitalRead(Tsecagem);//atribui o valor do pino que está conectado no botão da turbo secagem para a variável secagem
       
       Serial.println("");
       Serial.print("ciclo: ");
@@ -335,8 +343,15 @@ void menu(){
       Serial.println(secagem);
       Serial.println("===============================");
       tft.fillScreen(BLACK);//apaga o que está na tela
+      if(ciclo == 1 && debug == 5){//situação que entra na tela de debug
+        pagina = 7;
+        tft.fillScreen(BLACK);
+        displayDebug(1);
+      }
+      else{
       linhaTempo(0);
       pagina = 6;
+      }
       }
     }
     
@@ -1251,15 +1266,19 @@ void lavagem(){
   if(fase == 7){//fim
     Serial.println("fim");
     linhaTempo(fase);
-    //reseta todas as variáveis globais para voltar para o estado inicial de escolher o ciclo, para poder faer outra lavagem
+    //reseta todas as variáveis globais para voltar para o estado inicial de escolher o ciclo, para poder fazer outra lavagem
     pagina = 1;
     ciclo = 0;
     agua = 0;
     enxague = false;
     passa = false;
     secagem = false;
-    fase = 1;
-    fase2 = 0;  
+    fase = 1;//variavel que controla em qual ciclo a lavagem está
+    fase2 = 0; //variavel que controla em qual ciclo a lavagem pode ser que esteja na próxima
+    velocidade = 1;
+    maquina = 0;
+    pressao = 400;
+    debug = 0;
     tft.fillScreen(BLACK);//apaga o que está na tela
     modo(1);//para começar tudo de novo.
     return;
@@ -1267,10 +1286,10 @@ void lavagem(){
 }
 
 void timerRoutine(){
-  Serial.println(millis());
-  Serial.println(fase);
-  Serial.println(fase2);
   if (pagina == 6){//se está na página que mostra a linha do tempo(última página)
+    Serial.println(millis());
+    Serial.println(fase);
+    Serial.println(fase2);
     //------------------------------------------
     TSPoint p = ts.getPoint();
     pinMode(XM, OUTPUT);
@@ -1329,8 +1348,8 @@ void timerRoutine(){
         fase2 = 7;//faz ir para a fase 6, para que seja executado o "centrifugação"
       }
     }
+    Serial.println(millis());
   }
-  Serial.println(millis());
 }
 
 void maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool VPrincipal, bool VAmaciante){ //função que controla a máguina de lavar
@@ -1370,12 +1389,16 @@ void maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool V
   interrupts();
 }
 int pressostato(){
-  int coluna = 0;//variável que guarda o valor da coluna d'água em milímetros
+  float coluna = 0;//variável que guarda o valor da coluna d'água em milímetros
   coluna = analogRead(pres);
+  Serial.print(coluna);
+//  coluna = map(coluna, 0, 1023, 0, 5);//convertendo o valor lido na porta (0 a 1023) para 0-5V
+ // Serial.print(coluna);
+  coluna = map(coluna, 204.6, 1023, 0, 400);//convertendo o valor de 204,6(1V)-1023(5V) que o sensor dará para um valor de 0-400mm
   Serial.println("");
   Serial.print("coluna d'agua (mm): ");
-  Serial.print(map(coluna, 1, 5, 0, 400));
-  return map(coluna, 1, 5, 0, 400);//retorna o valor do mapeamento da variável coluna, que está na escala de 1 a 5, para um valor de 0 a 400
+  Serial.print(coluna);
+  return coluna;//retorna o valor do mapeamento da variável coluna, que está na escala de 1 a 5, para um valor de 0 a 400
 }
 void erros (){
   if (pagina == 6){//se está na página que mostra a linha do tempo(última página)
@@ -1401,7 +1424,6 @@ void erros (){
     pressao = pressostato();//guarda valor da coluna d'água para usar na próxima chegagem
   }
   }
-  
  }
 
 void telaErro(int erro){
@@ -1440,5 +1462,275 @@ void telaErro(int erro){
       tft.setTextSize(4);
       tft.print("drenando agua sobrando");
   }
+}
+
+void testes(){
+  //------------------------------------------
+  TSPoint p = ts.getPoint();
+  pinMode(XM, OUTPUT);
+  digitalWrite(XM, LOW);
+  pinMode(YP, OUTPUT);
+  digitalWrite(YP, HIGH);
+  pinMode(YM, OUTPUT);
+  digitalWrite(YM, LOW);
+  pinMode(XP, OUTPUT);
+  digitalWrite(XP, HIGH);
+ //------------------------------------------
+  if (p.z > MINPRESSURE && p.z < MAXPRESSURE){
+    p.x = (map(p.x, TS_MINX, TS_MAXX, tft.height(), 0));
+    p.y = (map(p.y, TS_MINY, TS_MAXY, tft.width(), 0));
+
+    Serial.print("py: ");
+    Serial.print(p.y);
+    Serial.print(" px: ");
+    Serial.println(p.x);
+  if((p.x >= 260) && (p.x <= 310) && (p.y >= 10)&& (p.y <= 50)){//seta voltar
+       paginaDebug --;
+       if (paginaDebug < 1) {
+         paginaDebug = 3;
+       }
+       noInterrupts();
+       tft.fillScreen(BLACK);//apaga o que está na tela
+       interrupts();
+       displayDebug(paginaDebug);//escreve na tela a página anterior
+     }
+     if((p.x >= 260) && (p.x <= 310) && (p.y >= 60)&& (p.y <= 100)){//seta avançar
+       paginaDebug ++;
+       if (paginaDebug > 3) {
+         paginaDebug = 1;
+       }
+       noInterrupts();
+       tft.fillScreen(BLACK);//apaga o que está na tela
+       interrupts();
+       displayDebug(paginaDebug);//escreve na tela a página posterior
+     }
+     if((p.x >= 267) && (p.x <= 303) && (p.y >= 310) && (p.y <= 470)){ //tecla voltar
+       tft.fillScreen(BLACK);//apaga o que está na tela
+       pagina = 1;
+       ciclo = 0;
+       agua = 0;
+       enxague = false;
+       passa = false;
+       secagem = false;
+       fase = 1;//variavel que controla em qual ciclo a lavagem está
+       fase2 = 0; //variavel que controla em qual ciclo a lavagem pode ser que esteja na próxima
+       maquina = 0;
+       pressao = 400;
+       debug = 0;
+       paginaDebug = 1;
+       maquinaDebug = 0;
+       maquinaLavar(false,false,false,false,false,false);
+       modo(1);
+       return;
+     }
+   if(paginaDebug == 1){
+     if((p.x>=60) && (p.x <= 87)){
+       maquinaDebug = maquinaDebug ^ 32;//inverte o bit referente à eletrobomba
+       displayDebug(1);
+     }
+     if((p.x>=90) && (p.x <= 117)){
+       maquinaDebug = maquinaDebug ^ 16;//inverte o bit referente o freio
+       displayDebug(1);
+     }
+     if((p.x>=120) && (p.x <= 147)){
+       maquinaDebug = maquinaDebug ^ 8;//inverte o bit referente ao motor horário
+       displayDebug(1);
+     }
+     if((p.x>=150) && (p.x <= 177)){
+       maquinaDebug = maquinaDebug ^ 4;//inverte o bit referente ao motor anti-horário
+       displayDebug(1);
+     }
+     if((p.x>=180) && (p.x <= 207)){
+       maquinaDebug = maquinaDebug ^ 2;//inverte o bit referente À valvula principal
+       displayDebug(1);
+     }
+     if((p.x>=210) && (p.x <= 237)){
+       maquinaDebug = maquinaDebug ^ 1;//inverte o bit referente À valvula amaciante
+       displayDebug(1);
+     }
+     maquinaLavar((maquinaDebug & 1), (maquinaDebug & 2), (maquinaDebug & 4), (maquinaDebug & 8), (maquinaDebug & 16), (maquinaDebug & 32));//aciona a máquina com o valor que foi pedido
+   } 
+   if(paginaDebug == 3){
+    if((p.x>=100) && (p.x <= 127)){
+       velocidade = 1;
+       Serial.println(velocidade);
+       displayDebug(3);
+     }
+     if((p.x>=130) && (p.x <= 157)){
+       velocidade = 2;
+       Serial.println(velocidade);
+       displayDebug(3);
+     }
+     if((p.x>=160) && (p.x <= 187)){
+       velocidade = 3;
+       Serial.println(velocidade);
+       displayDebug(3);
+     }
+     if((p.x>=190) && (p.x <= 217)){
+       velocidade = 5;
+       Serial.println(velocidade);
+       displayDebug(3);
+     }
+     if((p.x>=220) && (p.x <= 247)){
+       velocidade = 10;
+       Serial.println(velocidade);
+       displayDebug(3);
+     } 
+   }
+} 
+}
+//void maquinaLavar(bool eletrobomba, bool freio, bool motorH, bool motorA, bool VPrincipal, bool VAmaciante){ //função que controla a máguina de lavar
+//maquina = ((VAmaciante) + (VPrincipal*2) + (motorA*4) + (motorH*8) + (freio*16) + (eletrobomba*32));
+
+void displayDebug(int Pdebug){
+  tft.fillTriangle(50, 260, 50, 310, 10, 285, 0x4E4C);
+  tft.fillTriangle(60, 260, 60, 310, 100, 285, 0x4E4C);
+
+  tft.drawRoundRect(310, 267, ((6*6*4)+(4*4)), ((7*4)+ (2*4)), (1*4),0x7AFD);
+  tft.setCursor((310 + (2*4)), (267 + (1*4)));
+  tft.setTextColor(0x7AFD);
+  tft.setTextSize(4);
+  tft.print("voltar");
+
+  tft.drawRoundRect(10, 10, ((6*5*4)+(4*4)), ((7*4)+ (2*4)), (1*4),WHITE);
+  tft.setCursor((10 + (2*4)), (10 + (1*4)));
+  tft.setTextColor(WHITE);
+  tft.setTextSize(4);
+  tft.print("Debug");
+    
+  switch(Pdebug){
+    case 1:
+      tft.drawRoundRect(10, 60, ((6*11*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((10 + (2*3)), (60 + (1*3)));
+      tft.setTextColor(WHITE);
+      if((maquinaDebug & 32) == 32){tft.setTextColor(YELLOW);}
+      tft.setTextSize(3);
+      tft.print("eletrobomba");
+
+      tft.drawRoundRect(10, 90, ((6*5*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((10 + (2*3)), (90 + (1*3)));
+      tft.setTextColor(WHITE);
+      if((maquinaDebug & 16) == 16){tft.setTextColor(YELLOW);}
+      tft.setTextSize(3);
+      tft.print("freio");
+      
+      tft.drawRoundRect(10, 120, ((6*13*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((10 + (2*3)), (120 + (1*3)));
+      tft.setTextColor(WHITE);
+      if((maquinaDebug & 8) == 8){tft.setTextColor(YELLOW);}
+      tft.setTextSize(3);
+      tft.print("motor-horario");
   
+      tft.drawRoundRect(10, 150, ((6*18*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((10 + (2*3)), (150 + (1*3)));
+      tft.setTextColor(WHITE);
+      if((maquinaDebug & 4) == 4){tft.setTextColor(YELLOW);}
+      tft.setTextSize(3);
+      tft.print("motor-anti-horario");
+  
+      tft.drawRoundRect(10, 180, ((6*17*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((10 + (2*3)), (180 + (1*3)));
+      tft.setTextColor(WHITE);
+      if((maquinaDebug & 2) == 2){tft.setTextColor(YELLOW);}
+      tft.setTextSize(3);
+      tft.print("Valvula principal");
+  
+      tft.drawRoundRect(10, 210, ((6*17*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((10 + (2*3)), (210 + (1*3)));
+      tft.setTextColor(WHITE);
+      if((maquinaDebug & 1) == 1){tft.setTextColor(YELLOW);}
+      tft.setTextSize(3);
+      tft.print("Valvula amaciante");
+      break;
+    case 2:
+      tft.drawRoundRect(10, 60, ((6*15*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((10 + (2*3)), (60 + (1*3)));
+      tft.setTextColor(WHITE);
+      tft.setTextSize(3);
+      tft.print("Pressostato:");
+
+      tft.drawRoundRect(10, 90, ((6*17*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((10 + (2*3)), (90 + (1*3)));
+      tft.setTextColor(WHITE);
+      tft.setTextSize(3);
+      tft.print("Turbo secagem:");
+      
+      tft.drawRoundRect(10, 120, ((6*13*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((10 + (2*3)), (120 + (1*3)));
+      tft.setTextColor(WHITE);
+      tft.setTextSize(3);
+      tft.print("tampa:");
+      break;
+    case 3:
+      tft.drawRoundRect(10, 70, ((6*10*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((10 + (2*3)), (70 + (1*3)));
+      tft.setTextColor(WHITE);
+      tft.setTextSize(3);
+      tft.print("velocidade");
+
+      tft.drawRoundRect(40, 100, ((6*2*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE); 
+      tft.setCursor((40 + (2*3)), (100 + (1*3)));
+      tft.setTextColor(WHITE);
+      if (velocidade == 1){ tft.setTextColor(YELLOW);}//torna amarelo se for clicado
+      tft.setTextSize(3);
+      tft.print("1x");
+
+      tft.drawRoundRect(40, 130, ((6*2*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((40 + (2*3)), (130 + (1*3)));
+      tft.setTextColor(WHITE);
+      if (velocidade == 2){ tft.setTextColor(YELLOW);}//torna amarelo se for clicado
+      tft.setTextSize(3);
+      tft.print("2x");
+
+      tft.drawRoundRect(40, 160, ((6*2*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((40 + (2*3)), (160 + (1*3)));
+      tft.setTextColor(WHITE);
+      if (velocidade == 3){ tft.setTextColor(YELLOW);}//torna amarelo se for clicado
+      tft.setTextSize(3);
+      tft.print("3x");
+
+      tft.drawRoundRect(40, 190, ((6*2*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((40 + (2*3)), (190 + (1*3)));
+      tft.setTextColor(WHITE);
+      if (velocidade == 5){ tft.setTextColor(YELLOW);}//torna amarelo se for clicado
+      tft.setTextSize(3);
+      tft.print("5x");
+
+      tft.drawRoundRect(40, 220, ((6*3*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+      tft.setCursor((40 + (2*3)), (220 + (1*3)));
+      tft.setTextColor(WHITE);
+      if (velocidade == 10){ tft.setTextColor(YELLOW);}//torna amarelo se for clicado
+      tft.setTextSize(3);
+      tft.print("10x");
+      break;
+  }
+}
+void sensor(){
+  if((pagina == 7)&& paginaDebug == 2){
+    tft.setCursor(((10 + ((6*12*3)+(2*3))) + (2*3)), (60 + (1*3)));
+    tft.setTextColor(WHITE, BLACK);
+    tft.setTextSize(3);
+    tft.print(pressostato());
+    tft.drawRoundRect(10, 60, ((6*15*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+
+    tft.setCursor((10 + (6*14*3) + (2*3)), (90 + (1*3)));
+    tft.setTextColor(WHITE, BLACK);
+    tft.setTextSize(3);
+    if(digitalRead(Tsecagem) == HIGH){
+      tft.print("sim");
+    }else{
+      tft.print("nao");
+    }
+    tft.drawRoundRect(10, 90, ((6*17*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+
+    tft.setCursor((10 + (6*6*3) + (2*3)), (120 + (1*3)));
+    tft.setTextColor(WHITE, BLACK);
+    tft.setTextSize(3);
+    if(digitalRead(tampa) == HIGH){
+      tft.print("aberta");
+    }else{
+      tft.print("fechada");
+    }
+      tft.drawRoundRect(10, 120, ((6*13*3)+(4*3)), ((7*3)+ (2*3)), (1*3),WHITE);
+    }
 }
